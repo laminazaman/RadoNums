@@ -9,53 +9,45 @@ a = int(input())
 b = int(input())
 c = int(input())
 
-"""
-def colourList(n):
-    vars = [i for i in range(1, n + 1)]
-    vars += [i + n for i in range(1, n + 1)]
-    vars += [i + 2*n for i in range(1, n + 1)]
-    return vars
-
-def setColour(cols, colour, pos):
-    if colour == "red":
-        cols[pos + n] *= -1
-        cols[pos + 2*n] *= -1
-    elif colour == "green":
-        cols[pos - n] *= -1
-        cols[pos + n] *= -1
-    elif colour == "blue":
-        cols[pos - 2*n] *= -1
-        cols[pos - n] *= -1
+def toWord(model):
+    cols = ""
+    for m in model:
+        if m > 0:
+            if m % 3 == 1:
+                cols += "R"
+            elif m % 3 == 2:
+                cols += "G"
+            elif m % 3 == 0:
+                cols += "B"
     return cols
-"""
 
 with Solver() as s:
 
     while True:
 
-        #cols = colourList(n)
+        #positive clauses
+        for i in range(1, n + 1):
+            s.add_clause([3*i - 2, 3*i - 1, 3*i])
 
+        #negative clauses
         for x in range(1, n + 1):
             for y in range(1, n + 1):
                 if a*x + b*y <= c*n and (a*x + b*y) % c == 0:
                     z = (a*x + b*y) // c
 
-                    red = [x, y, z]
-                    s.add_clause(red)
+                    red = [3*x - 2, 3*y - 2, 3*z - 2]
                     s.add_clause([-i for i in red])
 
-                    green = [x + n, y + n, z + n]
-                    s.add_clause(green)
+                    green = [3*x - 1, 3*y - 1, 3*z - 1]
                     s.add_clause([-i for i in green])
 
-                    blue = [x + 2*n, y + 2*n, z + 2*n]
-                    s.add_clause(blue)
+                    blue = [3*x, 3*y, 3*z]
                     s.add_clause([-i for i in blue])
 
         result = s.solve()
 
         if result:
-            print("R > %d" % (n), s.get_model())
+            print("R > %d" % (n), toWord(s.get_model()))
         else:
             print("R = %d" % (n))
             break
