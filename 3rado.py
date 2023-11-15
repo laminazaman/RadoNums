@@ -5,10 +5,12 @@ n = 3 #start
 
 #eqn: ax + by = cz
 
+#take constants a, b, and c as input
 a = int(input())
 b = int(input())
 c = int(input())
 
+#function converts model to RGB string
 def toWord(model):
     cols = ""
     for m in model:
@@ -43,13 +45,19 @@ with Solver() as s:
 
                     blue = [3*x, 3*y, 3*z]
                     s.add_clause([-i for i in blue])
+        
+        #optional clauses
+        for i in range(1, n + 1):
+            s.add_clause([2 - 3*i, 1 - 3*i])
+            s.add_clause([1 - 3*i, -3*i])
+            s.add_clause([2 - 3*i, -3*i])
 
         result = s.solve()
 
         if result:
             print("R > %d" % (n), toWord(s.get_model()))
         else:
-            print("R = %d" % (n))
+            print("R = %d" % (n)) #solution
             break
 
         n += 1
