@@ -57,6 +57,38 @@ def optional_clause(col, pos):
     clause = [-i for i in clause]
     return clause
 
+#return list of x, y, z values that satisfy ax + by = cz
+def solve_equation(n):
+    solutions = []
+ 
+    for x in range(1, n + 1):
+        if a == b:
+            for y in range(x, n + 1):
+                z = (a*x + b*y) // c
+                if a*x + b*y == c*z and 1 <= z and z <= n:
+                    solutions.append((x, y, z))
+        else:
+            for y in range(1, n + 1):
+                z = (a*x + b*y) // c
+                if a*x + b*y == c*z and 1 <= z and z <= n:
+                    solutions.append((x, y, z))
+
+    return solutions
+
+#consistency checking
+def check(cols, n):
+    equation_solutions = solve_equation(n)
+
+    for i in range(len(equation_solutions)):
+        x = equation_solutions[i][0]
+        y = equation_solutions[i][1]
+        z = equation_solutions[i][2]
+
+        if cols[x - 1] == cols[y - 1] and cols[y - 1] == cols[z - 1]:
+            return "Monochromatic Solution Found"
+    
+    return ""
+
 #converts model to RGB string
 def toWord(model):
     cols = ""
@@ -70,15 +102,25 @@ def toWord(model):
                 cols += "B"
     return cols
 
-#consistency checking
-def check(cols):
-    for x in range(1, n + 1):
-        for y in range(1, n + 1):
-            if a*x + b*y <= c*n and (a*x + b*y) % c == 0:
-                z = (a*x + b*y) // c
-                if cols[x - 1] == cols[y - 1] and cols[y - 1] == cols[z - 1]:
-                    return "Monochromatic Solution Found"
-    return ""
+#implement exact formulas for families of 3-colour Rado numbers
+#Theorem 1.2 from ISAAC paper
+def theorems():
+    if a == 1 and b == -1 and c >= 1: #eqn: x - y = (m - 2)z
+        m = c + 2
+        return m**3 - m**2 - m - 1
+    elif a == -b and c == a - 1 and a >= 3: #eqn: a(x - y) = (a - 1)z
+        return a**3 + (a - 1)**2
+    elif a == -b and c >= 1 and a >= c + 2 and math.gcd(a, c) == 1: #eqn: a(x - y) = bz
+        return a**3
+    else:
+        return 0
+
+#check that a theorem can be applied, output results
+if theorems():
+    end = time.time() #end timer
+    print("R = %d" % (theorems()))
+    print("Program Time: %.2f seconds" % (end - start))
+    exit(1)
 
 with Solver(use_timer = True) as s:
 
@@ -88,15 +130,19 @@ with Solver(use_timer = True) as s:
         for i in range(1, n + 1):
             s.add_clause(positive_clause(i)) #position can be any colour
 
+        #list of x, y, z values that satisfy ax + by = cz
+        equation_solutions = solve_equation(n)
+
         #generate negative clauses
-        for x in range(1, n + 1):
-            for y in range(1, n + 1):
-                if a*x + b*y <= c*n and (a*x + b*y) % c == 0:
-                    z = (a*x + b*y) // c
-                    s.add_clause(negative_clause(1, x, y, z)) #no positions are red
-                    s.add_clause(negative_clause(2, x, y, z)) #no positions are green
-                    s.add_clause(negative_clause(3, x, y, z)) #no positions are blue
-        
+        for i in range(len(equation_solutions)):
+            x = equation_solutions[i][0]
+            y = equation_solutions[i][1]
+            z = equation_solutions[i][2]
+
+            s.add_clause(negative_clause(1, x, y, z)) #no positions are red
+            s.add_clause(negative_clause(2, x, y, z)) #no positions are green
+            s.add_clause(negative_clause(3, x, y, z)) #no positions are blue
+
         #generate optional clauses
         for i in range(1, n + 1):
             optional_clause(1, i) #position can't be green or blue
@@ -106,20 +152,24 @@ with Solver(use_timer = True) as s:
         result = s.solve()
         end = time.time() #end timer
 
+        """
         #program exceeds five minutes
         if (end - start) >= 600.0:
             print("Timeout: %.2f seconds" % (end - start))
             break
-        
+        """
+
         #no monochromatic solution found
         if result:
             cols = toWord(s.get_model())
-            print("R > %d" % (n), cols, check(cols))
+            print("R > %d" % (n), cols, check(cols, n))
 
         #monochromatic solution found    
         else:
             print("R = %d" % (n))
-            print("Time: %.2f seconds" % s.time_accum())
+            print("SAT Time: %.2f seconds" % s.time_accum())
+            print("Program Time: %.2f seconds" % (end - start))
+            print(s.accum_stats())
             break
 
         n += 1
