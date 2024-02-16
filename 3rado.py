@@ -2,7 +2,7 @@ from pysat.solvers import Solver
 import math
 import time
 
-start = time.time() #start timer
+start = time.time()
 
 r = 3 #number of colours
 n = 3 #minimum value of n
@@ -61,17 +61,26 @@ def optional_clause(col, pos):
 def solve_equation(n):
     solutions = []
  
+    x = n
+
+    for y in range(1, n + 1):
+        z = (a*x + b*y) // c
+        if a*x + b*y == c*z and 1 <= z and z <= n:
+            solutions.append((x, y, z))
+
+    y = n
+
     for x in range(1, n + 1):
-        if a == b:
-            for y in range(x, n + 1):
-                z = (a*x + b*y) // c
-                if a*x + b*y == c*z and 1 <= z and z <= n:
-                    solutions.append((x, y, z))
-        else:
-            for y in range(1, n + 1):
-                z = (a*x + b*y) // c
-                if a*x + b*y == c*z and 1 <= z and z <= n:
-                    solutions.append((x, y, z))
+        z = (a*x + b*y) // c
+        if a*x + b*y == c*z and 1 <= z and z <= n:
+            solutions.append((x, y, z))
+
+    z = n
+
+    for x in range(1, n + 1):
+        y = (c*z - a*x) // b
+        if a*x + b*y == c*z and 1 <= y and y <= n:
+            solutions.append((x, y, z))
 
     return solutions
 
@@ -124,45 +133,72 @@ if theorems():
 
 with Solver(use_timer = True) as s:
 
+    #generate positive clauses for n = 1, 2
+    s.add_clause(positive_clause(1))
+    s.add_clause(positive_clause(2)) 
+
+    #generate negative clauses for n = 1, 2
+    temp1 = solve_equation(1)
+
+    for i in range(len(temp1)):
+        x = temp1[i][0]
+        y = temp1[i][1]
+        z = temp1[i][2]
+
+        s.add_clause(negative_clause(1, x, y, z))
+        s.add_clause(negative_clause(2, x, y, z)) 
+        s.add_clause(negative_clause(3, x, y, z)) 
+
+    temp2 = solve_equation(2)
+
+    for i in range(len(temp2)):
+        x = temp2[i][0]
+        y = temp2[i][1]
+        z = temp2[i][2]
+
+        s.add_clause(negative_clause(1, x, y, z))
+        s.add_clause(negative_clause(2, x, y, z)) 
+        s.add_clause(negative_clause(3, x, y, z))
+
+    #generate optional clauses for n = 1, 2
+    s.add_clause(optional_clause(1, 1)) 
+    s.add_clause(optional_clause(2, 1))
+    s.add_clause(optional_clause(3, 1)) 
+
+    s.add_clause(optional_clause(1, 2))
+    s.add_clause(optional_clause(2, 2))
+    s.add_clause(optional_clause(3, 2)) 
+
     while True:
 
-        #generate positive clauses
-        for i in range(1, n + 1):
-            s.add_clause(positive_clause(i)) #position can be any colour
+        #generate positive clauses - position can be any colour
+        s.add_clause(positive_clause(n))
 
         #list of x, y, z values that satisfy ax + by = cz
         equation_solutions = solve_equation(n)
 
-        #generate negative clauses
+        #generate negative clauses - avoid monochromatic solutions
         for i in range(len(equation_solutions)):
             x = equation_solutions[i][0]
             y = equation_solutions[i][1]
             z = equation_solutions[i][2]
 
-            s.add_clause(negative_clause(1, x, y, z)) #no positions are red
-            s.add_clause(negative_clause(2, x, y, z)) #no positions are green
-            s.add_clause(negative_clause(3, x, y, z)) #no positions are blue
+            s.add_clause(negative_clause(1, x, y, z))
+            s.add_clause(negative_clause(2, x, y, z)) 
+            s.add_clause(negative_clause(3, x, y, z)) 
 
-        #generate optional clauses
-        for i in range(1, n + 1):
-            optional_clause(1, i) #position can't be green or blue
-            optional_clause(2, i) #position can't be red or blue
-            optional_clause(3, i) #position can't be red or green
+        #generate optional clauses - position can only be one colour
+        s.add_clause(optional_clause(1, n)) 
+        s.add_clause(optional_clause(2, n))
+        s.add_clause(optional_clause(3, n)) 
 
         result = s.solve()
-        end = time.time() #end timer
-
-        """
-        #program exceeds five minutes
-        if (end - start) >= 600.0:
-            print("Timeout: %.2f seconds" % (end - start))
-            break
-        """
+        end = time.time()
 
         #no monochromatic solution found
         if result:
             cols = toWord(s.get_model())
-            print("R > %d" % (n), cols, check(cols, n))
+            print("R > %d" % (n), cols)
 
         #monochromatic solution found    
         else:
