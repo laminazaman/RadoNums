@@ -169,13 +169,13 @@ with Solver(use_timer = True) as s:
 
     while True:
 
-        # generate positive clauses - position can be any colour
+        # generate positive clauses
         s.add_clause(positive_clause(n))
 
         # list of x, y, z values that satisfy ax + by = cz
         equation_solutions = solve_equation(n)
 
-        # generate negative clauses - avoid monochromatic solutions
+        # generate negative clauses
         for i in range(len(equation_solutions)):
             x = equation_solutions[i][0]
             y = equation_solutions[i][1]
@@ -185,7 +185,7 @@ with Solver(use_timer = True) as s:
             s.add_clause(negative_clause(2, x, y, z)) 
             s.add_clause(negative_clause(3, x, y, z)) 
 
-        # generate optional clauses - position can only be one colour
+        # generate optional clauses
         s.add_clause(optional_clause(1, n)) 
         s.add_clause(optional_clause(2, n))
         s.add_clause(optional_clause(3, n)) 
